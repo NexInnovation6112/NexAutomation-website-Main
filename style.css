@@ -1,0 +1,304 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+.wrapper {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* Navbar styles */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1;
+}
+
+/* Logo styles */
+.navbar .logo {
+    color: white;
+
+    margin-left: 20px;
+    /* Adjust the margin as needed */
+}
+
+/* Button container */
+.navbar .btn-container {
+    /* display: flex; */
+    justify-content: center;
+    align-items: center;
+}
+
+/* Button styles */
+.navbar .btn {
+    padding: 17px 40px;
+    margin-left: 30px;
+    margin-right: 30px;
+    border-radius: 50px;
+    cursor: pointer;
+    border: 0;
+    background-color: white;
+    box-shadow: rgb(0 0 0 / 5%) 0 0 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-size: 15px;
+    transition: all 0.5s ease;
+    color: black;
+}
+
+.navbar .btn:hover {
+    letter-spacing: 3px;
+    background-color: hsl(261deg 80% 48%);
+    color: hsl(0, 0%, 100%);
+    box-shadow: rgb(93 24 220) 0px 7px 29px 0px;
+}
+
+.navbar .btn:active {
+    letter-spacing: 3px;
+    background-color: hsl(261deg 80% 48%);
+    color: hsl(0, 0%, 100%);
+    box-shadow: rgb(93 24 220) 0px 0px 0px 0px;
+    transform: translateY(10px);
+    transition: 100ms;
+}
+
+.container {
+    border: 2px solid black;
+
+
+}
+
+/* For screens smaller than 600px (e.g., mobile phones) */
+@media screen and (max-width: 800px) {
+    .navbar .logo {
+        font-size: 20px;
+    }
+
+    .navbar .btn {
+        padding: 12px 24px;
+        /* Reduce button padding for smaller screens */
+        font-size: 8px;
+        /* Reduce font size for smaller screens */
+        height: 30px;
+        display: block;
+        align-items: center;
+        margin-top: 20px;
+    }
+
+    .container {
+        margin-top: 120px;
+        /* Adjust this value based on your navbar height */
+    }
+
+
+}
+
+/* For screens between 600px and 1024px (e.g., tablets and small laptops) */
+@media screen and (min-width: 801px) and (max-width: 2000px) {
+
+    .navbar .logo {
+        font-size: 40px;
+    }
+
+    .navbar .btn {
+        /* display: flex; */
+        padding: 15px 30px;
+        /* Adjust button padding for medium-sized screens */
+        font-size: 14px;
+        /* Adjust font size for medium-sized screens */
+        height: 70px;
+        width: 200px;
+        margin-top: 20px;
+    }
+
+    .container {
+        margin-top: 130px;
+        /* Adjust this value based on your navbar height */
+    }
+}
+
+/* Container styles */
+.container {
+    display: flex;
+    flex: 1;
+}
+
+.container .main-div {
+    flex: 1;
+    padding: 20px;
+    /* background-color: #f0f0f0; */
+    /* border: 1px solid #ccc; */
+    margin: 10px;
+    display: block;
+    /* Initially hide the div */
+}
+
+.switch-holder {
+    display: flex;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: -8px -8px 15px rgba(255, 255, 255, .7),
+        10px 10px 10px rgba(0, 0, 0, .2),
+        inset 8px 8px 15px rgba(255, 255, 255, .7),
+        inset 10px 10px 10px rgba(0, 0, 0, .2);
+    justify-content: space-between;
+    align-items: center;
+    width: 50%;
+    /* Set width to 80% of the viewport */
+    margin: 0 auto;
+    /* Center horizontally */
+    margin-top: 10px;
+}
+
+.switch-holder:not(:last-child) {
+    margin-bottom: 20px;
+    /* Add margin between buttons */
+}
+
+
+@media only screen and (min-width: 768px) {
+
+    /* Adjust for larger screens like laptops */
+    .switch-holder {
+        width: 50%;
+        /* Set width to 50% of the viewport */
+    }
+}
+
+@media only screen and (max-width: 480px) {
+
+    /* Adjust for smaller screens like mobile */
+    .switch-holder {
+        flex-direction: column;
+        /* Stack buttons vertically */
+        align-items: flex-start;
+        /* Align buttons to the start */
+    }
+}
+
+.switch-label {
+    padding: 0 20px 0 10px;
+}
+
+.switch-label i {
+    margin-right: 5px;
+}
+
+.switch-toggle {
+    height: 40px;
+}
+
+.switch-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    z-index: -2;
+}
+
+.switch-toggle input[type="checkbox"]+label {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 40px;
+    border-radius: 20px;
+    margin: 0;
+    cursor: pointer;
+    box-shadow: inset -8px -8px 15px rgba(255, 255, 255, .6),
+        inset 10px 10px 10px rgba(0, 0, 0, .25);
+}
+
+.switch-toggle input[type="checkbox"]+label::before {
+    position: absolute;
+    content: 'OFF';
+    font-size: 13px;
+    text-align: center;
+    line-height: 25px;
+    top: 8px;
+    left: 8px;
+    width: 45px;
+    height: 25px;
+    border-radius: 20px;
+    background-color: #eeeeee;
+    box-shadow: -3px -3px 5px rgba(255, 255, 255, .5),
+        3px 3px 5px rgba(0, 0, 0, .25);
+    transition: .3s ease-in-out;
+}
+
+.switch-toggle input[type="checkbox"]:checked+label::before {
+    left: 50%;
+    content: 'ON';
+    color: #fff;
+    background-color: #00b33c;
+    box-shadow: -3px -3px 5px rgba(255, 255, 255, .5),
+        3px 3px 5px #00b33c;
+}
+
+.footer {
+    /* flex-shrink: 0; */
+    /* background-color: #333; */
+    /* color: #fff; */
+    /* text-align: center; */
+    /* line-height: 60px; */
+    background-color: #333;
+    text-align: center;
+    color: #fff;
+    padding: 20px;
+    margin-top: 10px;
+    position: none;
+    bottom: 0;
+    width: 100%;
+    z-index: 1;
+}
+
+
+
+/* loading css */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+    font-size: 18px;
+    z-index: 9999;
+}
+
+.spinner {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-weight: bold;
+}
