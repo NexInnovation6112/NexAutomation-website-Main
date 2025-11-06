@@ -36,14 +36,13 @@ document.addEventListener("click", (e) => {
 });
 
 let cachedDeviceNames = null;
+let deviceListenersActive = false;
 
-/* 🧩 Render single device card */
+/* 🧩 Render a single device card */
 function renderDeviceCard(deviceId, displayName, state, index = 0) {
   const card = document.createElement("div");
   card.className = `device-card ${state ? "active" : ""}`;
   card.setAttribute("data-id", deviceId);
-
-  // 🎞️ Staggered fade delay for nicer load
   card.style.animationDelay = `${index * 0.05}s`;
 
   card.innerHTML = `
@@ -58,7 +57,14 @@ function renderDeviceCard(deviceId, displayName, state, index = 0) {
 
   const checkbox = card.querySelector("input");
 
-  card.onclick = () => {
+  // ✅ prevent double click triggers
+  checkbox.addEventListener("click", (e) => e.stopPropagation());
+
+  // ✅ toggle state only (no reload, no rebuild)
+  card.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     const newState = !checkbox.checked;
     checkbox.checked = newState;
     updateCardUI(card, newState);
@@ -70,19 +76,19 @@ function renderDeviceCard(deviceId, displayName, state, index = 0) {
         checkbox.checked = !newState;
         updateCardUI(card, !newState);
       });
-  };
+  });
 
   return card;
 }
 
-/* 🧩 Update card UI feedback */
+/* 🧠 Smooth UI animation feedback */
 function updateCardUI(card, isOn) {
   card.classList.toggle("active", isOn);
   card.style.transform = "scale(0.97)";
   setTimeout(() => (card.style.transform = "scale(1)"), 100);
 }
 
-/* 🧩 Render all devices */
+/* 💡 Initial render */
 function showDevices(data) {
   console.time("💡 Render Devices");
   devicesDiv.innerHTML = "";
@@ -94,7 +100,24 @@ function showDevices(data) {
   console.timeEnd("💡 Render Devices");
 }
 
-/* 🧠 Update existing card headers when names arrive */
+/* 🧩 Update existing cards instead of full re-render */
+function updateDeviceStates(data) {
+  Object.entries(data).forEach(([id, value]) => {
+    const card = devicesDiv.querySelector(`.device-card[data-id="${id}"]`);
+    if (card) {
+      const checkbox = card.querySelector("input");
+      if (checkbox && checkbox.checked !== value) {
+        checkbox.checked = value;
+        updateCardUI(card, value);
+      }
+    } else {
+      // new device found
+      devicesDiv.appendChild(renderDeviceCard(id, cachedDeviceNames?.[id] || id, value));
+    }
+  });
+}
+
+/* 🧠 Update headers when names load */
 function updateCardHeaders(names) {
   Object.keys(names).forEach((devKey) => {
     const cardHeader = devicesDiv.querySelector(
@@ -117,7 +140,7 @@ function watchDeviceNames(defaultKeys) {
     r6: "Staff Fan",
   };
 
-  // ✅ Step 1 — Load cached device names if present
+  // ✅ Use cached names first
   const cached = sessionStorage.getItem("deviceNames");
   if (cached) {
     cachedDeviceNames = JSON.parse(cached);
@@ -125,7 +148,7 @@ function watchDeviceNames(defaultKeys) {
     updateCardHeaders(cachedDeviceNames);
   }
 
-  // ✅ Step 2 — Always listen for live Firebase updates
+  // ✅ Always listen for live updates
   onValue(nameRef, (snap) => {
     if (snap.exists()) {
       cachedDeviceNames = snap.val();
@@ -142,19 +165,17 @@ function watchDeviceNames(defaultKeys) {
       );
     }
 
-    // ✅ Step 3 — Update headers & cache locally
     updateCardHeaders(cachedDeviceNames);
     sessionStorage.setItem("deviceNames", JSON.stringify(cachedDeviceNames));
     console.timeEnd("🔧 Watch Device Names");
   });
 }
 
-/* 🧩 Load user info in background */
+/* 👤 Load user info */
 function loadUserData(userEmail) {
   console.time("👤 Load User Data");
   const userRef = ref(db, "config/userdata");
 
-  // show placeholder immediately
   userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> Loading...`;
   userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userEmail}`;
 
@@ -162,25 +183,21 @@ function loadUserData(userEmail) {
     let userData = snap.val();
     if (!userData) {
       userData = { email: userEmail, name: "NexInnovation Automation" };
-      set(userRef, userData).catch((err) => console.error("Failed to create userdata:", err));
+      set(userRef, userData);
     } else {
       if (!userData.name) userData.name = "NexInnovation Automation";
       if (!userData.email) userData.email = userEmail;
-      if (!snap.val().name || !snap.val().email) {
-        update(userRef, { email: userData.email, name: userData.name }).catch((err) => {
-          console.error("Failed to update userdata defaults:", err);
-        });
-      }
+      if (!snap.val().name || !snap.val().email)
+        update(userRef, { email: userData.email, name: userData.name });
     }
 
-    // update popup
     userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> ${userData.name}`;
     userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userData.email}`;
     console.timeEnd("👤 Load User Data");
   });
 }
 
-/* 🧩 Auth Listener — show devices instantly, then sync names + user */
+/* 🚀 Auth Listener — optimized for speed */
 onAuthStateChanged(auth, async (user) => {
   console.time("🚀 Dashboard Load Total");
 
@@ -190,20 +207,26 @@ onAuthStateChanged(auth, async (user) => {
     const mainRef = ref(db, "main_office");
 
     onValue(mainRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.val();
-
-        // 🧠 Step 1 — render instantly
-        showDevices(data);
-
-        // 🧠 Step 2 — load & cache names
-        if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
-
-        // 🧠 Step 3 — load user info async
-        loadUserData(user.email);
-      } else {
+      if (!snap.exists()) {
         devicesDiv.innerHTML = "<p>No device data</p>";
+        return;
       }
+
+      const data = snap.val();
+
+      // Initial render if not already done
+      if (!deviceListenersActive) {
+        showDevices(data);
+        deviceListenersActive = true;
+      } else {
+        // Just update changed states
+        updateDeviceStates(data);
+      }
+
+      // Device names + user info
+      if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
+      loadUserData(user.email);
+
       console.timeEnd("🚀 Dashboard Load Total");
     });
   } else {
