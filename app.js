@@ -37,57 +37,7 @@ document.addEventListener("click", (e) => {
 
 let cachedDeviceNames = null;
 
-// 🧩 Watch user info live
-function watchUserData(userEmail) {
-  console.time("👤 Watch User Data");
-  const userRef = ref(db, "config/userdata");
-
-  onValue(userRef, (snap) => {
-    let userData = snap.val();
-    if (!userData) {
-      userData = { email: userEmail, name: "NexInnovation Automation" };
-      set(userRef, userData);
-    } else {
-      if (!userData.name) userData.name = "NexInnovation Automation";
-      if (!userData.email) userData.email = userEmail;
-    }
-
-    // Update popup instantly
-    userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> ${userData.name}`;
-    userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userData.email}`;
-    console.timeEnd("👤 Watch User Data");
-  });
-}
-
-// 🧩 Watch device names live
-function watchDeviceNames(defaultKeys) {
-  console.time("🔧 Watch Device Names");
-  const nameRef = ref(db, "config/device_names");
-  const defaultNames = {
-    r1: "Main Light 1",
-    r2: "Main Light 2",
-    r3: "Fan 1",
-    r4: "Staff Light 1",
-    r5: "Staff Light 2",
-    r6: "Staff Fan"
-  };
-
-  onValue(nameRef, (snap) => {
-    if (snap.exists()) {
-      cachedDeviceNames = snap.val();
-      defaultKeys.forEach((key) => {
-        if (!cachedDeviceNames[key]) cachedDeviceNames[key] = defaultNames[key];
-      });
-      update(nameRef, cachedDeviceNames);
-    } else {
-      cachedDeviceNames = defaultNames;
-      set(nameRef, defaultNames);
-    }
-    console.timeEnd("🔧 Watch Device Names");
-  });
-}
-
-// 🧩 Render device card (no icons)
+// 🧩 Fast: Render Devices First
 function renderDeviceCard(deviceId, displayName, state) {
   const card = document.createElement("div");
   card.className = `device-card ${state ? "active" : ""}`;
@@ -103,7 +53,6 @@ function renderDeviceCard(deviceId, displayName, state) {
 
   const checkbox = card.querySelector("input");
 
-  // Toggle on card click
   card.onclick = () => {
     const newState = !checkbox.checked;
     checkbox.checked = newState;
@@ -121,7 +70,7 @@ function renderDeviceCard(deviceId, displayName, state) {
   return card;
 }
 
-// 🧩 Smooth visual toggle
+// 🧩 Smooth animation
 function updateCardUI(card, isOn) {
   card.classList.toggle("active", isOn);
   card.style.transform = "scale(0.97)";
@@ -133,6 +82,8 @@ function showDevices(data) {
   console.time("💡 Render Devices");
   devicesDiv.innerHTML = "";
   const keys = Object.keys(data);
+
+  // Use cached or fallback names
   keys.forEach((k) => {
     const name = (cachedDeviceNames && cachedDeviceNames[k]) || k.toUpperCase();
     devicesDiv.appendChild(renderDeviceCard(k, name, data[k]));
@@ -140,21 +91,78 @@ function showDevices(data) {
   console.timeEnd("💡 Render Devices");
 }
 
+// 🧩 Load or update device names
+function watchDeviceNames(defaultKeys) {
+  console.time("🔧 Watch Device Names");
+  const nameRef = ref(db, "config/device_names");
+  const defaultNames = {
+    r1: "Main Light 1",
+    r2: "Main Light 2",
+    r3: "Fan 1",
+    r4: "Staff Light 1",
+    r5: "Staff Light 2",
+    r6: "Staff Fan",
+  };
+
+  onValue(nameRef, (snap) => {
+    if (snap.exists()) {
+      cachedDeviceNames = snap.val();
+      defaultKeys.forEach((key) => {
+        if (!cachedDeviceNames[key]) cachedDeviceNames[key] = defaultNames[key];
+      });
+      update(nameRef, cachedDeviceNames);
+    } else {
+      cachedDeviceNames = defaultNames;
+      set(nameRef, defaultNames);
+    }
+    console.timeEnd("🔧 Watch Device Names");
+  });
+}
+
+// 🧩 Load user info AFTER UI appears
+function loadUserData(userEmail) {
+  console.time("👤 Load User Data");
+  const userRef = ref(db, "config/userdata");
+
+  // Show placeholders immediately
+  userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> Loading...`;
+  userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userEmail}`;
+
+  onValue(userRef, (snap) => {
+    let userData = snap.val();
+    if (!userData) {
+      userData = { email: userEmail, name: "NexInnovation Automation" };
+      set(userRef, userData);
+    } else {
+      if (!userData.name) userData.name = "NexInnovation Automation";
+      if (!userData.email) userData.email = userEmail;
+    }
+
+    // Update once data arrives
+    userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> ${userData.name}`;
+    userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userData.email}`;
+    console.timeEnd("👤 Load User Data");
+  });
+}
+
 // 🧩 Auth listener
 onAuthStateChanged(auth, async (user) => {
   console.time("🚀 Dashboard Load Total");
+
   if (user) {
     console.log("✅ Logged in as:", user.email);
 
-    // Start live watchers right away
-    watchUserData(user.email);
-
+    // Start showing devices immediately
     const mainRef = ref(db, "main_office");
     onValue(mainRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
-        if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
+        // Render instantly first
         showDevices(data);
+
+        // Start background watchers
+        if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
+        loadUserData(user.email);
       } else {
         devicesDiv.innerHTML = "<p>No device data</p>";
       }
