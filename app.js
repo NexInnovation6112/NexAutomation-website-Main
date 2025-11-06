@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebas
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-// 🔧 Firebase Config
+/* 🔧 Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyBR6JSbH5c2qXAy8IDzFQe84Ux-yBF6G-I",
   authDomain: "automation-4fc96.firebaseapp.com",
@@ -14,18 +14,18 @@ const firebaseConfig = {
   measurementId: "G-Z6GQGCEQQ2",
 };
 
-// 🔐 Auth Credentials
+/* 🔐 Auth Credentials */
 const email = "esp32.test.nexinnovation@gmail.com";
 const password = "ESP32.test.NexInnovation.Automation";
 
-// ⚙️ Initialize Firebase
+/* ⚙️ Initialize Firebase */
 console.time("🔥 Firebase Init");
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 console.timeEnd("🔥 Firebase Init");
 
-// 🌐 DOM Elements
+/* 🌐 DOM Elements */
 const devicesDiv = document.getElementById("devices");
 const userIcon = document.getElementById("user-icon");
 const userPopup = document.getElementById("user-popup");
@@ -37,11 +37,15 @@ document.addEventListener("click", (e) => {
 
 let cachedDeviceNames = null;
 
-// 🧩 Render single device card (fast)
-function renderDeviceCard(deviceId, displayName, state) {
+/* 🧩 Render single device card */
+function renderDeviceCard(deviceId, displayName, state, index = 0) {
   const card = document.createElement("div");
   card.className = `device-card ${state ? "active" : ""}`;
-  card.setAttribute("data-id", deviceId); // allow updating later
+  card.setAttribute("data-id", deviceId);
+
+  // 🎞️ Staggered fade delay for nicer load
+  card.style.animationDelay = `${index * 0.05}s`;
+
   card.innerHTML = `
     <div class="device-header">${displayName}</div>
     <div class="device-body">
@@ -71,27 +75,36 @@ function renderDeviceCard(deviceId, displayName, state) {
   return card;
 }
 
-// 🧩 Update visual state
+/* 🧩 Update card UI feedback */
 function updateCardUI(card, isOn) {
   card.classList.toggle("active", isOn);
   card.style.transform = "scale(0.97)";
   setTimeout(() => (card.style.transform = "scale(1)"), 100);
 }
 
-// 🧩 Render all devices quickly (uses cached names if available)
+/* 🧩 Render all devices */
 function showDevices(data) {
   console.time("💡 Render Devices");
   devicesDiv.innerHTML = "";
   const keys = Object.keys(data || {});
-  keys.forEach((k) => {
-    // Use cached name if present, otherwise use key (will be updated when names arrive)
+  keys.forEach((k, i) => {
     const name = (cachedDeviceNames && cachedDeviceNames[k]) || k.toUpperCase();
-    devicesDiv.appendChild(renderDeviceCard(k, name, data[k]));
+    devicesDiv.appendChild(renderDeviceCard(k, name, data[k], i));
   });
   console.timeEnd("💡 Render Devices");
 }
 
-// 🧩 Watch device names and update DOM headers when available
+/* 🧠 Update existing card headers when names arrive */
+function updateCardHeaders(names) {
+  Object.keys(names).forEach((devKey) => {
+    const cardHeader = devicesDiv.querySelector(
+      `.device-card[data-id="${devKey}"] .device-header`
+    );
+    if (cardHeader) cardHeader.innerText = names[devKey];
+  });
+}
+
+/* 🧩 Watch & Cache Device Names */
 function watchDeviceNames(defaultKeys) {
   console.time("🔧 Watch Device Names");
   const nameRef = ref(db, "config/device_names");
@@ -104,35 +117,39 @@ function watchDeviceNames(defaultKeys) {
     r6: "Staff Fan",
   };
 
+  // ✅ Step 1 — Load cached device names if present
+  const cached = sessionStorage.getItem("deviceNames");
+  if (cached) {
+    cachedDeviceNames = JSON.parse(cached);
+    console.log("⚙️ Using cached device names from sessionStorage");
+    updateCardHeaders(cachedDeviceNames);
+  }
+
+  // ✅ Step 2 — Always listen for live Firebase updates
   onValue(nameRef, (snap) => {
     if (snap.exists()) {
       cachedDeviceNames = snap.val();
-      // ensure defaults for any missing keys
       defaultKeys.forEach((key) => {
         if (!cachedDeviceNames[key]) cachedDeviceNames[key] = defaultNames[key];
       });
-      // push back any filled defaults
-      update(nameRef, cachedDeviceNames).catch((err) => {
-        console.error("Failed to update device_names defaults:", err);
-      });
+      update(nameRef, cachedDeviceNames).catch((err) =>
+        console.error("Failed to update device_names defaults:", err)
+      );
     } else {
       cachedDeviceNames = defaultNames;
-      set(nameRef, defaultNames).catch((err) => console.error("Failed to create device_names:", err));
+      set(nameRef, defaultNames).catch((err) =>
+        console.error("Failed to create device_names:", err)
+      );
     }
 
-    // Update existing card headers in DOM
-    Object.keys(cachedDeviceNames).forEach((devKey) => {
-      const cardHeader = devicesDiv.querySelector(`.device-card[data-id="${devKey}"] .device-header`);
-      if (cardHeader) {
-        cardHeader.innerText = cachedDeviceNames[devKey];
-      }
-    });
-
+    // ✅ Step 3 — Update headers & cache locally
+    updateCardHeaders(cachedDeviceNames);
+    sessionStorage.setItem("deviceNames", JSON.stringify(cachedDeviceNames));
     console.timeEnd("🔧 Watch Device Names");
   });
 }
 
-// 🧩 Load user info in background (after UI)
+/* 🧩 Load user info in background */
 function loadUserData(userEmail) {
   console.time("👤 Load User Data");
   const userRef = ref(db, "config/userdata");
@@ -149,7 +166,6 @@ function loadUserData(userEmail) {
     } else {
       if (!userData.name) userData.name = "NexInnovation Automation";
       if (!userData.email) userData.email = userEmail;
-      // if we filled defaults locally, push them back
       if (!snap.val().name || !snap.val().email) {
         update(userRef, { email: userData.email, name: userData.name }).catch((err) => {
           console.error("Failed to update userdata defaults:", err);
@@ -164,25 +180,26 @@ function loadUserData(userEmail) {
   });
 }
 
-// 🧩 Auth listener — render devices first, then start name/user watchers
+/* 🧩 Auth Listener — show devices instantly, then sync names + user */
 onAuthStateChanged(auth, async (user) => {
   console.time("🚀 Dashboard Load Total");
+
   if (user) {
     console.log("✅ Logged in as:", user.email);
 
-    // 1) Show devices immediately (fast render) using cached names if present
     const mainRef = ref(db, "main_office");
+
     onValue(mainRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
 
-        // Render quickly using cached names or fallback
+        // 🧠 Step 1 — render instantly
         showDevices(data);
 
-        // 2) Start watching device names (this will update headers in-place once ready)
+        // 🧠 Step 2 — load & cache names
         if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
 
-        // 3) Load user data in background (popup updates when ready)
+        // 🧠 Step 3 — load user info async
         loadUserData(user.email);
       } else {
         devicesDiv.innerHTML = "<p>No device data</p>";

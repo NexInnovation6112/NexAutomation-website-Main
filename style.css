@@ -1,3 +1,4 @@
+/* 🌐 Base Styles */
 body {
     font-family: "Poppins", sans-serif;
     background: #f3f6fa;
@@ -77,13 +78,13 @@ body {
     gap: 20px;
     padding: 25px;
     max-width: 1000px;
-    margin: 0 auto; /* center the grid */
+    margin: 0 auto;
   }
   
-  /* 🧩 Force 2-column layout on phones */
+  /* 📱 Responsive: Force 2 columns on phones */
   @media (max-width: 600px) {
     #devices {
-      grid-template-columns: repeat(2, minmax(0, 1fr)); /* 👈 always 2 columns */
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
       padding: 16px;
     }
@@ -97,13 +98,6 @@ body {
     }
   }
   
-  /* 🧩 Only single column for very tiny screens (<360px) */
-  /* @media (max-width: 200px) {
-    #devices {
-      grid-template-columns: 1fr;
-    }
-  } */
-  
   /* 💡 Device Cards */
   .device-card {
     background: #fff;
@@ -111,9 +105,26 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     padding: 15px;
     text-align: center;
-    transition: all 0.25s ease;
     cursor: pointer;
     user-select: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+    
+    /* ✨ Smooth fade-in animation */
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeUp 0.4s ease forwards;
+  }
+  
+  /* 🎞️ Fade animation for card load */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
   .device-card:hover {
