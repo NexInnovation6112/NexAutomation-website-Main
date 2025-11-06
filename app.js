@@ -37,10 +37,11 @@ document.addEventListener("click", (e) => {
 
 let cachedDeviceNames = null;
 
-// 🧩 Fast: Render Devices First
+// 🧩 Render single device card (fast)
 function renderDeviceCard(deviceId, displayName, state) {
   const card = document.createElement("div");
   card.className = `device-card ${state ? "active" : ""}`;
+  card.setAttribute("data-id", deviceId); // allow updating later
   card.innerHTML = `
     <div class="device-header">${displayName}</div>
     <div class="device-body">
@@ -59,7 +60,7 @@ function renderDeviceCard(deviceId, displayName, state) {
     updateCardUI(card, newState);
 
     set(ref(db, "main_office/" + deviceId), newState)
-      .then(() => console.log(`✅ ${displayName} -> ${newState}`))
+      .then(() => console.log(`✅ ${deviceId} -> ${newState}`))
       .catch((err) => {
         console.error("❌ Firebase update failed:", err);
         checkbox.checked = !newState;
@@ -70,28 +71,27 @@ function renderDeviceCard(deviceId, displayName, state) {
   return card;
 }
 
-// 🧩 Smooth animation
+// 🧩 Update visual state
 function updateCardUI(card, isOn) {
   card.classList.toggle("active", isOn);
   card.style.transform = "scale(0.97)";
   setTimeout(() => (card.style.transform = "scale(1)"), 100);
 }
 
-// 🧩 Render all devices
+// 🧩 Render all devices quickly (uses cached names if available)
 function showDevices(data) {
   console.time("💡 Render Devices");
   devicesDiv.innerHTML = "";
-  const keys = Object.keys(data);
-
-  // Use cached or fallback names
+  const keys = Object.keys(data || {});
   keys.forEach((k) => {
+    // Use cached name if present, otherwise use key (will be updated when names arrive)
     const name = (cachedDeviceNames && cachedDeviceNames[k]) || k.toUpperCase();
     devicesDiv.appendChild(renderDeviceCard(k, name, data[k]));
   });
   console.timeEnd("💡 Render Devices");
 }
 
-// 🧩 Load or update device names
+// 🧩 Watch device names and update DOM headers when available
 function watchDeviceNames(defaultKeys) {
   console.time("🔧 Watch Device Names");
   const nameRef = ref(db, "config/device_names");
@@ -107,24 +107,37 @@ function watchDeviceNames(defaultKeys) {
   onValue(nameRef, (snap) => {
     if (snap.exists()) {
       cachedDeviceNames = snap.val();
+      // ensure defaults for any missing keys
       defaultKeys.forEach((key) => {
         if (!cachedDeviceNames[key]) cachedDeviceNames[key] = defaultNames[key];
       });
-      update(nameRef, cachedDeviceNames);
+      // push back any filled defaults
+      update(nameRef, cachedDeviceNames).catch((err) => {
+        console.error("Failed to update device_names defaults:", err);
+      });
     } else {
       cachedDeviceNames = defaultNames;
-      set(nameRef, defaultNames);
+      set(nameRef, defaultNames).catch((err) => console.error("Failed to create device_names:", err));
     }
+
+    // Update existing card headers in DOM
+    Object.keys(cachedDeviceNames).forEach((devKey) => {
+      const cardHeader = devicesDiv.querySelector(`.device-card[data-id="${devKey}"] .device-header`);
+      if (cardHeader) {
+        cardHeader.innerText = cachedDeviceNames[devKey];
+      }
+    });
+
     console.timeEnd("🔧 Watch Device Names");
   });
 }
 
-// 🧩 Load user info AFTER UI appears
+// 🧩 Load user info in background (after UI)
 function loadUserData(userEmail) {
   console.time("👤 Load User Data");
   const userRef = ref(db, "config/userdata");
 
-  // Show placeholders immediately
+  // show placeholder immediately
   userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> Loading...`;
   userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userEmail}`;
 
@@ -132,36 +145,44 @@ function loadUserData(userEmail) {
     let userData = snap.val();
     if (!userData) {
       userData = { email: userEmail, name: "NexInnovation Automation" };
-      set(userRef, userData);
+      set(userRef, userData).catch((err) => console.error("Failed to create userdata:", err));
     } else {
       if (!userData.name) userData.name = "NexInnovation Automation";
       if (!userData.email) userData.email = userEmail;
+      // if we filled defaults locally, push them back
+      if (!snap.val().name || !snap.val().email) {
+        update(userRef, { email: userData.email, name: userData.name }).catch((err) => {
+          console.error("Failed to update userdata defaults:", err);
+        });
+      }
     }
 
-    // Update once data arrives
+    // update popup
     userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> ${userData.name}`;
     userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userData.email}`;
     console.timeEnd("👤 Load User Data");
   });
 }
 
-// 🧩 Auth listener
+// 🧩 Auth listener — render devices first, then start name/user watchers
 onAuthStateChanged(auth, async (user) => {
   console.time("🚀 Dashboard Load Total");
-
   if (user) {
     console.log("✅ Logged in as:", user.email);
 
-    // Start showing devices immediately
+    // 1) Show devices immediately (fast render) using cached names if present
     const mainRef = ref(db, "main_office");
     onValue(mainRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
-        // Render instantly first
+
+        // Render quickly using cached names or fallback
         showDevices(data);
 
-        // Start background watchers
+        // 2) Start watching device names (this will update headers in-place once ready)
         if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
+
+        // 3) Load user data in background (popup updates when ready)
         loadUserData(user.email);
       } else {
         devicesDiv.innerHTML = "<p>No device data</p>";
