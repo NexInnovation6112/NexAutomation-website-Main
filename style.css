@@ -98,7 +98,7 @@ body {
   }
   
   /* 🧩 Only single column for very tiny screens (<360px) */
-  @media (max-width: 360px) {
+  @media (max-width: 200px) {
     #devices {
       grid-template-columns: 1fr;
     }
