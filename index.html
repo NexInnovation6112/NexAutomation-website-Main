@@ -1,114 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexInnovation Relay Control</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="script.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEXINNOVATION Automation Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-
-    <!-- 🔄 Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">NexInnovation...</div>
+  <!-- Top Bar -->
+  <div id="topbar">
+    <h1>🏢 NEXINNOVATION Dashboard</h1>
+    <div id="user-icon">
+        <img src="/image/NexInnovation - round.png" alt="NEXINNOVATION Logo" id="user-logo" />
+      <!-- Hidden Popup -->
+      <div id="user-popup" class="hidden">
+        <p><strong>Name:</strong> NEXINNOVATION Automation</p>
+        <p><strong>Email:</strong> <span id="user-email"></span></p>
+      </div>
     </div>
+  </div>
 
-    <div class="wrapper">
-        <div class="navbar">
-            <div class="logo">NexInnovation</div>
-            <div class="btn-container">
-                <button class="btn">Main Office</button>
-                <button class="btn">Workshop</button>
-            </div>
-        </div>
+  <!-- Device Section -->
+  <div id="devices"></div>
 
-
-
-        <div class="container">
-            <div id="mainOffice" class="main-div">
-
-                <!-- <div>
-                    <p>Controller Status: <span id="status-indicator">Checking...</span></p>
-                </div> -->
-
-                <div class="switch-holder">
-                    <div class="switch-label">
-                        <i class="fa fa-bluetooth-b"></i><span>Main Light 1</span>
-                    </div>
-
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="button1">
-                        <label for="button1"></label>
-                    </div>
-                </div>
-
-                <div class="switch-holder">
-                    <div class="switch-label">
-                        <i class="fa fa-wifi"></i><span>Main Light 2</span>
-                    </div>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="button2">
-                        <label for="button2"></label>
-                    </div>
-                </div>
-
-                <div class="switch-holder">
-                    <div class="switch-label">
-                        <i class="fa fa-volume-up"></i><span>Main Fan</span>
-                    </div>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="button3">
-                        <label for="button3"></label>
-                    </div>
-                </div>
-
-                <div class="switch-holder">
-                    <div class="switch-label">
-                        <i class="fa fa-lightbulb"></i><span>Office Light 1</span>
-                    </div>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="button4">
-                        <label for="button4"></label>
-                    </div>
-                </div>
-
-                <div class="switch-holder">
-                    <div class="switch-label">
-                        <i class="fa fa-music"></i><span>Office Light 2</span>
-                    </div>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="button5">
-                        <label for="button5"></label>
-                    </div>
-                </div>
-
-                <div class="switch-holder">
-                    <div class="switch-label">
-                        <i class="fa fa-sun"></i><span>Office Fan</span>
-                    </div>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="button6">
-                        <label for="button6"></label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <footer class="footer">
-            <p>&copy; 2023 NexInnovation. All rights reserved.</p>
-            <p>Powered by Parth</p>
-        </footer>
-    </div>
-
-    <!-- <script src="app.js"></script> -->
+  <script type="module" src="app.js"></script>
 </body>
-
 </html>
