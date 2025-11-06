@@ -1,29 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>NexInnovation Dashboard</title>
-        <link rel="stylesheet" href="style.css" />
-      </head>
-      
-<body>
-  <!-- Top Bar -->
-  <div id="topbar">
-    <h1>🏢 NEXINNOVATION Dashboard</h1>
-    <div id="user-icon">
-        <img src="/image/NexInnovation - round.png" alt="NEXINNOVATION Logo" id="user-logo" />
-      <!-- Hidden Popup -->
-      <div id="user-popup" class="hidden">
-        <p><strong>Name:</strong> NEXINNOVATION Automation</p>
-        <p><strong>Email:</strong> <span id="user-email"></span></p>
-      </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NexInnovation Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+
+<link rel="preload" href="https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js" as="script" crossorigin="anonymous" />
+<link rel="preload" href="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js" as="script" crossorigin="anonymous" />
+<link rel="preload" href="https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js" as="script" crossorigin="anonymous" />
+
+
+
+    <!-- 🧩 Optional: Simple inline style for smooth opacity fade -->
+    <style>
+      #devices {
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      #devices.loaded {
+        opacity: 1;
+      }
+
+      /* Optional: "Loading..." placeholder */
+      #loading-text {
+        text-align: center;
+        margin-top: 40px;
+        font-size: 16px;
+        color: #555;
+        animation: fadeIn 0.5s ease-in-out infinite alternate;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0.4; }
+        to { opacity: 1; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Top Bar -->
+    <div id="topbar">
+      <h1>🏢 NEXINNOVATION Dashboard</h1>
     </div>
-  </div>
 
-  <!-- Device Section -->
-  <div id="devices"></div>
+    <!-- Device Section -->
+    <div id="devices">
+      <p id="loading-text">Loading devices...</p>
+    </div>
 
-  <script type="module" src="app.js"></script>
-</body>
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

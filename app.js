@@ -1,6 +1,18 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  onValue,
+  set,
+  update,
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 /* 🔧 Firebase Config */
 const firebaseConfig = {
@@ -11,10 +23,9 @@ const firebaseConfig = {
   storageBucket: "automation-4fc96.firebasestorage.app",
   messagingSenderId: "818633473538",
   appId: "1:818633473538:web:7979f2fc1ab7ca8734f11b",
-  measurementId: "G-Z6GQGCEQQ2",
 };
 
-/* 🔐 Auth Credentials */
+/* 🧩 Auth Credentials */
 const email = "esp32.test.nexinnovation@gmail.com";
 const password = "ESP32.test.NexInnovation.Automation";
 
@@ -27,18 +38,10 @@ console.timeEnd("🔥 Firebase Init");
 
 /* 🌐 DOM Elements */
 const devicesDiv = document.getElementById("devices");
-const userIcon = document.getElementById("user-icon");
-const userPopup = document.getElementById("user-popup");
-
-userIcon.addEventListener("click", () => userPopup.classList.toggle("hidden"));
-document.addEventListener("click", (e) => {
-  if (!userIcon.contains(e.target)) userPopup.classList.add("hidden");
-});
-
 let cachedDeviceNames = null;
 let deviceListenersActive = false;
 
-/* 🧩 Render a single device card */
+/* 🧩 Render Device Card */
 function renderDeviceCard(deviceId, displayName, state, index = 0) {
   const card = document.createElement("div");
   card.className = `device-card ${state ? "active" : ""}`;
@@ -56,51 +59,38 @@ function renderDeviceCard(deviceId, displayName, state, index = 0) {
   `;
 
   const checkbox = card.querySelector("input");
-
-  // ✅ prevent double click triggers
   checkbox.addEventListener("click", (e) => e.stopPropagation());
-
-  // ✅ toggle state only (no reload, no rebuild)
-  card.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  card.addEventListener("click", () => {
     const newState = !checkbox.checked;
     checkbox.checked = newState;
     updateCardUI(card, newState);
-
-    set(ref(db, "main_office/" + deviceId), newState)
-      .then(() => console.log(`✅ ${deviceId} -> ${newState}`))
-      .catch((err) => {
-        console.error("❌ Firebase update failed:", err);
-        checkbox.checked = !newState;
-        updateCardUI(card, !newState);
-      });
+    set(ref(db, "main_office/" + deviceId), newState).catch(console.error);
   });
 
   return card;
 }
 
-/* 🧠 Smooth UI animation feedback */
+/* 💡 Smooth UI Update */
 function updateCardUI(card, isOn) {
   card.classList.toggle("active", isOn);
   card.style.transform = "scale(0.97)";
   setTimeout(() => (card.style.transform = "scale(1)"), 100);
 }
 
-/* 💡 Initial render */
+/* 💡 Render Devices */
 function showDevices(data) {
-  console.time("💡 Render Devices");
   devicesDiv.innerHTML = "";
-  const keys = Object.keys(data || {});
-  keys.forEach((k, i) => {
-    const name = (cachedDeviceNames && cachedDeviceNames[k]) || k.toUpperCase();
-    devicesDiv.appendChild(renderDeviceCard(k, name, data[k], i));
+  Object.entries(data || {}).forEach(([id, val], i) => {
+    const name = cachedDeviceNames?.[id] || id.toUpperCase();
+    devicesDiv.appendChild(renderDeviceCard(id, name, val, i));
   });
-  console.timeEnd("💡 Render Devices");
+
+  // Fade in devices
+  devicesDiv.classList.add("loaded");
+  document.getElementById("loading-text")?.remove();
 }
 
-/* 🧩 Update existing cards instead of full re-render */
+/* ⚡ Update Existing Cards */
 function updateDeviceStates(data) {
   Object.entries(data).forEach(([id, value]) => {
     const card = devicesDiv.querySelector(`.device-card[data-id="${id}"]`);
@@ -111,25 +101,13 @@ function updateDeviceStates(data) {
         updateCardUI(card, value);
       }
     } else {
-      // new device found
-      devicesDiv.appendChild(renderDeviceCard(id, cachedDeviceNames?.[id] || id, value));
+      devicesDiv.appendChild(renderDeviceCard(id, id, value));
     }
   });
 }
 
-/* 🧠 Update headers when names load */
-function updateCardHeaders(names) {
-  Object.keys(names).forEach((devKey) => {
-    const cardHeader = devicesDiv.querySelector(
-      `.device-card[data-id="${devKey}"] .device-header`
-    );
-    if (cardHeader) cardHeader.innerText = names[devKey];
-  });
-}
-
-/* 🧩 Watch & Cache Device Names */
+/* 🧩 Watch Device Names */
 function watchDeviceNames(defaultKeys) {
-  console.time("🔧 Watch Device Names");
   const nameRef = ref(db, "config/device_names");
   const defaultNames = {
     r1: "Main Light 1",
@@ -140,102 +118,94 @@ function watchDeviceNames(defaultKeys) {
     r6: "Staff Fan",
   };
 
-  // ✅ Use cached names first
   const cached = sessionStorage.getItem("deviceNames");
   if (cached) {
     cachedDeviceNames = JSON.parse(cached);
-    console.log("⚙️ Using cached device names from sessionStorage");
     updateCardHeaders(cachedDeviceNames);
   }
 
-  // ✅ Always listen for live updates
   onValue(nameRef, (snap) => {
     if (snap.exists()) {
       cachedDeviceNames = snap.val();
       defaultKeys.forEach((key) => {
         if (!cachedDeviceNames[key]) cachedDeviceNames[key] = defaultNames[key];
       });
-      update(nameRef, cachedDeviceNames).catch((err) =>
-        console.error("Failed to update device_names defaults:", err)
-      );
     } else {
       cachedDeviceNames = defaultNames;
-      set(nameRef, defaultNames).catch((err) =>
-        console.error("Failed to create device_names:", err)
-      );
+      set(nameRef, defaultNames);
     }
 
     updateCardHeaders(cachedDeviceNames);
     sessionStorage.setItem("deviceNames", JSON.stringify(cachedDeviceNames));
-    console.timeEnd("🔧 Watch Device Names");
   });
 }
 
-/* 👤 Load user info */
-function loadUserData(userEmail) {
-  console.time("👤 Load User Data");
-  const userRef = ref(db, "config/userdata");
+/* 💬 Update Headers */
+function updateCardHeaders(names) {
+  Object.keys(names).forEach((devKey) => {
+    const cardHeader = devicesDiv.querySelector(
+      `.device-card[data-id="${devKey}"] .device-header`
+    );
+    if (cardHeader) cardHeader.innerText = names[devKey];
+  });
+}
 
-  userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> Loading...`;
-  userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userEmail}`;
+/* 🚀 Main Load Logic */
+function startDashboard() {
+  console.time("🚀 Dashboard Load");
+  const mainRef = ref(db, "main_office");
 
-  onValue(userRef, (snap) => {
-    let userData = snap.val();
-    if (!userData) {
-      userData = { email: userEmail, name: "NexInnovation Automation" };
-      set(userRef, userData);
-    } else {
-      if (!userData.name) userData.name = "NexInnovation Automation";
-      if (!userData.email) userData.email = userEmail;
-      if (!snap.val().name || !snap.val().email)
-        update(userRef, { email: userData.email, name: userData.name });
+  // ⚡ Show cached data instantly if available
+  const cachedData = localStorage.getItem("cachedMainOfficeData");
+  if (cachedData && !deviceListenersActive) {
+    const data = JSON.parse(cachedData);
+    console.log("⚡ Showing cached devices instantly...");
+    showDevices(data);
+    deviceListenersActive = true;
+  }
+
+  // 🔄 Live updates from Firebase
+  onValue(mainRef, (snap) => {
+    if (!snap.exists()) {
+      devicesDiv.innerHTML = "<p>No device data</p>";
+      return;
     }
 
-    userPopup.querySelector("p:nth-child(1)").innerHTML = `<strong>Name:</strong> ${userData.name}`;
-    userPopup.querySelector("p:nth-child(2)").innerHTML = `<strong>Email:</strong> ${userData.email}`;
-    console.timeEnd("👤 Load User Data");
+    const data = snap.val();
+
+    // ✅ Save latest snapshot
+    localStorage.setItem("cachedMainOfficeData", JSON.stringify(data));
+
+    if (!deviceListenersActive) {
+      showDevices(data);
+      deviceListenersActive = true;
+      watchDeviceNames(Object.keys(data));
+    } else {
+      updateDeviceStates(data);
+    }
+
+    console.timeEnd("🚀 Dashboard Load");
   });
 }
 
-/* 🚀 Auth Listener — optimized for speed */
-onAuthStateChanged(auth, async (user) => {
-  console.time("🚀 Dashboard Load Total");
-
-  if (user) {
-    console.log("✅ Logged in as:", user.email);
-
-    const mainRef = ref(db, "main_office");
-
-    onValue(mainRef, (snap) => {
-      if (!snap.exists()) {
-        devicesDiv.innerHTML = "<p>No device data</p>";
-        return;
-      }
-
-      const data = snap.val();
-
-      // Initial render if not already done
-      if (!deviceListenersActive) {
-        showDevices(data);
-        deviceListenersActive = true;
-      } else {
-        // Just update changed states
-        updateDeviceStates(data);
-      }
-
-      // Device names + user info
-      if (!cachedDeviceNames) watchDeviceNames(Object.keys(data));
-      loadUserData(user.email);
-
-      console.timeEnd("🚀 Dashboard Load Total");
-    });
-  } else {
-    console.time("🔐 Sign-in Process");
-    signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        console.timeEnd("🔐 Sign-in Process");
-        console.log("✅ Signed in successfully");
-      })
-      .catch((err) => console.error("❌ Login failed:", err));
-  }
+/* ⚙️ Auth Handling — Cached Session + Persistent Login */
+setPersistence(auth, browserLocalPersistence).then(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      console.log("✅ Using cached login:", user.email);
+      startDashboard();
+    } else {
+      console.log("🔐 Logging in with credentials...");
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {
+          console.log("✅ Login success, starting dashboard...");
+          startDashboard();
+        })
+        .catch((err) => {
+          console.error("❌ Login failed:", err);
+          devicesDiv.innerHTML =
+            "<p>Login failed. Check network or credentials.</p>";
+        });
+    }
+  });
 });

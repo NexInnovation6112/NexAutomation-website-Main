@@ -1,202 +1,178 @@
 /* 🌐 Base Styles */
 body {
-    font-family: "Poppins", sans-serif;
-    background: #f3f6fa;
-    color: #222;
-    margin: 0;
-    padding: 0;
-  }
+  font-family: "Poppins", sans-serif;
+  background: #f3f6fa;
+  color: #222;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent; /* 🚫 Removes mobile tap flash */
+}
+
+/* 🧠 Top Bar */
+#topbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0077ff;
+  color: white;
+  padding: 14px 24px;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  user-select: none;
+}
+
+/* ⚙️ Device Grid */
+#devices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+  padding: 25px;
+  max-width: 1000px;
+  margin: 0 auto;
+  opacity: 0;
+  transition: opacity 0.4s ease; /* ✨ Smooth fade-in */
+}
+
+#devices.loaded {
+  opacity: 1;
+}
+
+/* 💡 Device Cards */
+.device-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
   
-  /* 🧠 Top Bar */
-  #topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #0077ff;
-    color: white;
-    padding: 12px 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* 👤 User Icon + Logo */
-  #user-icon {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    cursor: pointer;
-  }
-  
-  #user-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #fff;
-    border: 2px solid #fff;
-    transition: all 0.25s ease;
-  }
-  
-  #user-logo:hover {
-    transform: scale(1.08);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
-  }
-  
-  /* 🪟 User Info Popup */
-  #user-popup {
-    position: absolute;
-    right: 0;
-    top: 55px;
-    background: #fff;
-    color: #333;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 12px 16px;
-    width: 240px;
-    text-align: left;
-    z-index: 10;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-  }
-  
-  #user-popup p {
-    margin: 6px 0;
-    font-size: 14px;
-    line-height: 1.4;
-    color: #333;
-  }
-  
-  .hidden {
-    display: none;
-  }
-  
-  /* ⚙️ Device Grid */
-  #devices {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 20px;
-    padding: 25px;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  
-  /* 📱 Responsive: Force 2 columns on phones */
-  @media (max-width: 600px) {
-    #devices {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      padding: 16px;
-    }
-  
-    .device-card {
-      padding: 12px;
-    }
-  
-    .device-header {
-      font-size: 14px;
-    }
-  }
-  
-  /* 💡 Device Cards */
-  .device-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    padding: 15px;
-    text-align: center;
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-    
-    /* ✨ Smooth fade-in animation */
+  /* ✨ Smooth fade-in animation */
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeUp 0.4s ease forwards;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fadeUp {
+  from {
     opacity: 0;
     transform: translateY(10px);
-    animation: fadeUp 0.4s ease forwards;
   }
-  
-  /* 🎞️ Fade animation for card load */
-  @keyframes fadeUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .device-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.device-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.device-card.active {
+  box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+  background: #e9f4ff;
+}
+
+.device-header {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: #333;
+  white-space: nowrap;         /* 💡 Prevents text wrap on small screens */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 🎚️ Toggle Switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d32f2f;
+  transition: 0.3s;
+  border-radius: 34px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #00c853;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.device-card:active {
+  transform: scale(0.97);
+}
+
+/* 🧩 Loading Placeholder */
+#loading-text {
+  text-align: center;
+  margin-top: 40px;
+  color: #555;
+  font-size: 16px;
+  animation: fadeIn 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* 📱 Responsive Layout */
+@media (max-width: 600px) {
+  #devices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 16px;
   }
-  
-  .device-card.active {
-    box-shadow: 0 0 8px rgba(7, 7, 7, 0.4);
+
+  .device-card {
+    padding: 12px;
   }
-  
+
   .device-header {
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 12px;
-    color: #444;
+    font-size: 14px;
   }
-  
-  .device-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* 🎚️ Toggle Switch */
-  .toggle {
-    position: relative;
-    display: inline-block;
-    width: 52px;
-    height: 28px;
-  }
-  
-  .toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #d32f2f;
-    transition: 0.3s;
-    border-radius: 34px;
-    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
-  }
-  
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 22px;
-    width: 22px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
-  
-  input:checked + .slider {
-    background-color: #00c853;
-  }
-  
-  input:checked + .slider:before {
-    transform: translateX(24px);
-  }
-  
-  .device-card:active {
-    transform: scale(0.97);
-  }
-  
+}
