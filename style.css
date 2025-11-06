@@ -76,6 +76,29 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 20px;
     padding: 25px;
+    max-width: 1000px;
+    margin: 0 auto; /* center the grid on large screens */
+  }
+  
+  /* 📱 Responsive Adjustments */
+  @media (max-width: 900px) {
+    #devices {
+      max-width: 800px;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    #devices {
+      grid-template-columns: repeat(2, 1fr); /* force 2 columns on mobile */
+      gap: 14px;
+      padding: 18px;
+    }
+  }
+  
+  @media (max-width: 360px) {
+    #devices {
+      grid-template-columns: 1fr; /* fallback to 1 column on very tiny screens */
+    }
   }
   
   /* 💡 Device Cards */
@@ -96,7 +119,6 @@ body {
   }
   
   .device-card.active {
-    /* border: 2px solid #00c853; */
     box-shadow: 0 0 8px rgba(7, 7, 7, 0.4);
   }
   
@@ -164,3 +186,14 @@ body {
     transform: scale(0.97);
   }
   
+  /* 📱 Make cards slightly smaller on small screens */
+  @media (max-width: 600px) {
+    .device-card {
+      padding: 12px;
+    }
+  
+    .device-header {
+      font-size: 14px;
+    }
+  }
+    
