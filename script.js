@@ -162,6 +162,7 @@ function initializeRealtimeListeners() {
             for (const relayId of relayIDs) {
                 updateSwitchUI(relayId, deviceStates[relayId]);
             }
+            console.log("... UI updated from FIREBASE states."); // Log for Firebase state update
             updateStatus("Dashboard is live and in sync.", 'success');
         } else {
             console.warn("[Firebase] '/main_office' path does not exist.");
@@ -181,6 +182,7 @@ function initializeRealtimeListeners() {
             deviceNames = names;
             sessionStorage.setItem('deviceNames', JSON.stringify(deviceNames));
             updateAllDeviceNames();
+            console.log("... UI updated from FIREBASE device names."); // Log for Firebase name update
         } else {
             console.warn("[Firebase] '/config/device_names' path does not exist.");
         }
@@ -197,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStatus("Initializing dashboard...", 'info');
 
     // --- A. Load from SessionStorage (for fast load) ---
+    console.log("[Page Load] DOM loaded. Applying cached states...");
     try {
         const cachedStates = sessionStorage.getItem('deviceStates');
         if (cachedStates) {
@@ -206,11 +209,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateSwitchUI(relayId, deviceStates[relayId]);
                 }
             }
+            console.log("[SessionStorage] Loaded states from cache:", deviceStates);
         }
         const cachedNames = sessionStorage.getItem('deviceNames');
         if (cachedNames) {
             deviceNames = JSON.parse(cachedNames);
             updateAllDeviceNames();
+            console.log("[SessionStorage] Loaded names from cache:", deviceNames);
         }
     } catch (e) {
         console.error("Error reading from sessionStorage:", e);
