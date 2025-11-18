@@ -272,3 +272,133 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus("Could not initialize dashboard. Check console.", 'error');
     }
 });
+
+// --- 5. VOICE COMMAND INTEGRATION ---
+
+const voiceBtn = document.getElementById('voice-btn');
+const voicePulse = document.getElementById('voice-pulse');
+const voiceFeedback = document.getElementById('voice-feedback');
+
+// Check browser support
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-IN'; // Optimized for Indian English accents
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // 1. Start Listening
+    voiceBtn.addEventListener('click', () => {
+        if (!isAuthReady) {
+            updateStatus("Wait for connection...", "error");
+            return;
+        }
+        try {
+            recognition.start();
+        } catch (e) {
+            console.log("Recognition already started");
+        }
+    });
+
+    // 2. UI Updates on Start/End
+    recognition.onstart = () => {
+        voicePulse.classList.remove('hidden');
+        voiceFeedback.textContent = "Listening... (e.g., 'Turn on Light')";
+        voiceBtn.classList.add('bg-red-500');
+        voiceBtn.classList.remove('bg-blue-600');
+    };
+
+    recognition.onend = () => {
+        voicePulse.classList.add('hidden');
+        voiceBtn.classList.remove('bg-red-500');
+        voiceBtn.classList.add('bg-blue-600');
+        // Clear feedback after 3 seconds
+        setTimeout(() => {
+            if (voiceFeedback.textContent.includes("Listening")) {
+                voiceFeedback.textContent = ""; 
+            }
+        }, 3000);
+    };
+
+    // 3. Process Result
+    recognition.onresult = (event) => {
+        const command = event.results[0][0].transcript.toLowerCase().trim();
+        voiceFeedback.textContent = `Heard: "${command}"`;
+        console.log("[Voice] Command:", command);
+        
+        processCommand(command);
+    };
+
+    // 4. Command Logic
+    function processCommand(text) {
+        // Determine intent (ON or OFF)
+        const turnOn = text.includes('on') || text.includes('start') || text.includes('open');
+        const turnOff = text.includes('off') || text.includes('stop') || text.includes('close');
+
+        if (!turnOn && !turnOff) {
+            updateStatus("Voice command unclear. Say 'On' or 'Off'.", 'error');
+            return;
+        }
+
+        // Determine Target Device
+        let targetId = null;
+
+        // Check 1: Match against custom names (e.g., "Kitchen")
+        for (const [id, name] of Object.entries(deviceNames)) {
+            if (name && text.includes(name.toLowerCase())) {
+                targetId = id;
+                break;
+            }
+        }
+
+        // Check 2: Match against generic names (e.g., "Switch 1", "Relay 2")
+        if (!targetId) {
+            relayIDs.forEach((id, index) => {
+                const num = index + 1;
+                const words = ['one', 'two', 'three', 'four', 'five', 'six'];
+                if (text.includes(`switch ${num}`) || 
+                    text.includes(`relay ${num}`) || 
+                    text.includes(`number ${num}`) ||
+                    text.includes(`switch ${words[index]}`)) {
+                    targetId = id;
+                }
+            });
+        }
+
+        // Check 3: "All" command
+        if (text.includes('all') || text.includes('everything')) {
+            updateStatus(`Turning ALL ${turnOn ? 'ON' : 'OFF'}`, 'success');
+            relayIDs.forEach(id => controlDeviceSecure(id, turnOn));
+            return;
+        }
+
+        // Execute
+        if (targetId) {
+            controlDeviceSecure(targetId, turnOn);
+            updateStatus(`Voice: ${deviceNames[targetId] || targetId} turned ${turnOn ? 'ON' : 'OFF'}`, 'success');
+        } else {
+            updateStatus("Device not found in command.", 'error');
+        }
+    }
+
+    // Helper to set specific state (unlike toggle)
+    function controlDeviceSecure(relayId, targetState) {
+        const currentState = deviceStates[relayId];
+        
+        // Only act if the current state is different from the target state
+        if (currentState !== targetState) {
+            // We can reuse your existing logic, but we need to ensure we don't just toggle blindly.
+            // Since handleSwitchToggle toggles whatever the CURRENT in-memory state is, 
+            // and we just verified currentState != targetState, calling handleSwitchToggle will achieve the target.
+            handleSwitchToggle(relayId);
+        } else {
+            console.log(`[Voice] ${relayId} is already ${targetState ? 'ON' : 'OFF'}. No action.`);
+        }
+    }
+
+} else {
+    voiceBtn.style.display = 'none';
+    voiceFeedback.textContent = "Voice control not supported in this browser.";
+}
